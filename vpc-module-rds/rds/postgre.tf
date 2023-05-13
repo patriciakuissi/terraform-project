@@ -4,7 +4,7 @@ resource "aws_db_instance" "python-db" {
   engine                      = var.engine
   engine_version              = var.vers
   instance_class              = var.instance_class
-#  allocated_storage           = var.store1
+  allocated_storage           = var.store1
   #max_allocated_storage       = var.store2
   publicly_accessible         = false
   name                        = var.name
