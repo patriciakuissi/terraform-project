@@ -49,7 +49,7 @@ resource "aws_route_table_association" "a" {
 # 6- create Security group to allow port 22, 80, 443
 
 resource "aws_security_group" "allow_web" {
-  name        = "allow_web_traffic"
+  name        = "allow_web_traffi"
   description = "Allow web inbound traffic"
   vpc_id      = aws_vpc.dev-vpc.id
 
@@ -118,6 +118,6 @@ resource "aws_instance" "dev-ec2" {
   }
   
     tags = {
-        Name = "ec2-dev"
+        Name = "ec2-prod"
     }           
 }
