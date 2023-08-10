@@ -48,10 +48,5 @@ pipeline {
         }
     }
     
-    post {
-        always {
-            // Clean up, notifications, etc.
-            echo "Pipeline completed!"
-        }
-    }
+  
 }
