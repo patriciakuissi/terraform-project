@@ -13,8 +13,7 @@ pipeline {
             steps {
                 // Build your application here
                 sh '''
-                'echo "Building  application..."
-                sonar-scanner -Dsonar.projectKey=my_project_key
+                'echo "Building  application...'
                 
                 '''
             }     
