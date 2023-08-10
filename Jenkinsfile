@@ -15,8 +15,9 @@ pipeline {
                 sh '''
                 'echo "Building  application..."
                 sonar-scanner -Dsonar.projectKey=my_project_key
-
-            }   '''
+                
+                '''
+            }     
         }
          stage('SonarQube analysis') {
             agent {
