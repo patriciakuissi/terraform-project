@@ -1,0 +1,189 @@
+provider "aws" {
+  region = "us-east-1" 
+}
+
+# Step 1: Create a VPC
+resource "aws_vpc" "patou-vpc" {
+  cidr_block = "10.0.0.0/16"
+  tags = {
+    Name = "patou-vpc"
+  }
+}
+
+# Step 2: Create a public subnet
+resource "aws_subnet" "patou-subnet1" {
+  vpc_id     = aws_vpc.patou-vpc.id
+  cidr_block = "10.0.0.0/20"
+  availability_zone = "us-east-1a"  
+  tags = {
+    Name = "patou-subnet1"
+  }
+}
+resource "aws_subnet" "patou-subnet2" {
+  vpc_id     = aws_vpc.patou-vpc.id
+  cidr_block = "10.0.16.0/20"
+  availability_zone = "us-east-1b"  
+  tags = {
+    Name = "patou-subnet2"
+  }
+}
+
+# Step 3: Create a role
+resource "aws_iam_role" "patou-role" {
+  name = "PatouRole"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"  # Set the principal to ec2.amazonaws.com for EC2 instances
+        }
+      },
+    ]
+  })
+}
+ 
+  # Define the necessary permissions for the role
+  # (e.g., for interacting with other AWS services)
+
+
+# Step 4: Create a keypair and security group
+# resource "aws_key_pair" "patou-key-pair" {
+#   key_name   = "patricia-keypair1"
+#   public_key = "SHA256:GNvsGE7O7/aFR8NgGVT84bXBsmc9bTWdlRZEJVbomE0"  # Replace with your public SSH key
+# }
+
+resource "tls_private_key" "example" {
+  algorithm = "RSA"
+  rsa_bits  = 2048
+}
+
+resource "local_file" "public_key" {
+  filename = "public_key.pub"
+  content  = tls_private_key.example.public_key_openssh
+}
+resource "aws_security_group" "patou-sg" {
+  name_prefix = "patou-sg"
+  vpc_id      = aws_vpc.patou-vpc.id
+
+  ingress {
+    from_port   = 0
+    to_port     = 65535  # Allow all ports
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_internet_gateway" "main" {
+  depends_on = [
+    aws_vpc.patou-vpc
+  ]
+  vpc_id = aws_vpc.patou-vpc.id
+
+}
+
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.patou-vpc.id
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
+  }
+  
+}
+
+
+
+resource "aws_route_table_association" "public_subnet_association" {
+  subnet_id      = aws_subnet.patou-subnet1.id
+  route_table_id = aws_route_table.public.id
+}
+
+
+
+
+
+# Step 5: Create an Ubuntu 22 VM
+resource "aws_instance" "patou-ec2" {
+  ami           = "ami-053b0d53c279acc90"  # Replace with Ubuntu 22 AMI ID
+  instance_type = "t2.micro"  # Replace with your desired instance type
+    subnet_id = aws_subnet.patou-subnet1.id
+      # aws_subnet.patou-subnet2.id,
+    security_groups = [aws_security_group.patou-sg.id] 
+  
+
+  # Root volume
+  root_block_device {
+    volume_type           = "gp3"
+    volume_size           = 8
+    delete_on_termination = true
+  }
+
+  # External EBS
+  ebs_block_device {
+    device_name           = "/dev/sdb"  # Replace with the appropriate device name
+    volume_type           = "gp3"
+    volume_size           = 20
+    delete_on_termination = true
+  }
+
+  user_data = <<-EOF
+              #!/bin/bash
+              sudo apt-get update
+              sudo apt-get upgrade -y
+              EOF
+}
+# Step 6: Attach elements from 1 through 4 to the VM (omitted as these are automatically associated)
+
+
+# Step 8: Create a load balancer
+resource "aws_lb" "patou-lb" {
+  name               = "patou-lb"
+  internal           = false
+  load_balancer_type = "application"
+
+  subnets = [aws_subnet.patou-subnet1.id, aws_subnet.patou-subnet2.id]
+}
+# Step 9: Create an elastic load balancer
+# resource "aws_elb" "patou-elb" {
+#   name               = "patou-elb"
+#   availability_zones = ["us-east-1a", "us-east-1b"]  # Replace with your desired AZ(s)
+#   instances          = [aws_instance.patou-ec2.id]
+
+#   listener {
+#     instance_port     = 80
+#     instance_protocol = "HTTP"
+#     lb_port           = 80
+#     lb_protocol       = "HTTP"
+#   }
+# }
+
+
+
+resource "aws_elb" "my_classic_elb" {
+  name               = "my-classic-lb"
+  internal           = false
+  security_groups    = [aws_security_group.patou-sg.id]
+  subnets            = [aws_subnet.patou-subnet1.id, aws_subnet.patou-subnet2.id]
+
+  listener {
+    instance_port     = 80
+    instance_protocol = "HTTP"
+    lb_port           = 80
+    lb_protocol       = "HTTP"
+  }
+}
+# Step 7: Create a target group (for Load Balancer)
+resource "aws_lb_target_group" "patou-tg1" {
+  name     = "patou-target-goup"
+  port     = 80  # Replace with your desired port number
+  protocol = "HTTP"
+  vpc_id   = aws_vpc.patou-vpc.id
+}
+
+# Step 10: Attach elements from 6 through 9 to the VM (omitted as these are automatically associated)
+
+# B- Install JRE, JDK, Docker to the indicated machine
+# You can use a provisioner like "remote-exec" or "file" to install the necessary software.
