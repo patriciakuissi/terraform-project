@@ -12,7 +12,7 @@ pipeline {
         stage('Build') {
             steps {
                 // Build your application here
-                sh 'echo "Building the application..."'
+                sh 'echo "Building  application..."'
             }
         }
         
