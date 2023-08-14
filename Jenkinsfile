@@ -12,11 +12,8 @@ pipeline {
         stage('Build') {
             steps {
                 // Build your application here
-                sh '''
-                'echo "Building  application...'
-                
-                '''
-            }     
+                sh 'echo "Building  application..."'
+            }
         }
          stage('SonarQube analysis') {
             agent {
